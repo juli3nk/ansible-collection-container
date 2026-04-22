@@ -1,0 +1,19 @@
+---
+- name: Deploy ArgoCD
+  kubernetes.core.helm:
+    name: argo-cd
+    chart_ref: '../cd/charts/argo-cd'
+    create_namespace: true
+    release_namespace: "{{ argocd_namespace }}"
+    release_state: present
+
+- name: Pause to allow ArgoCD to start
+  ansible.builtin.pause:
+    seconds: 60
+
+- name: Install Infra App
+  kubernetes.core.helm:
+    name: infra
+    chart_ref: '../cd/apps/infra'
+    release_namespace: "{{ argocd_namespace }}"
+    release_state: present

@@ -1,0 +1,15 @@
+---
+- name: Update GRUB
+  become: true
+  ansible.builtin.shell: /usr/sbin/update-grub
+
+- name: Reboot Host
+  become: true
+  ansible.builtin.reboot:
+    reboot_timeout: 600
+
+- name: Restart Docker
+  become: true
+  ansible.builtin.service:
+    name: docker
+    state: restarted

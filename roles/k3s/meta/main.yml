@@ -1,0 +1,17 @@
+galaxy_info:
+  author: Julien K.
+  description: install k3s
+
+  license: MIT
+
+  min_ansible_version: 2.1
+
+  platforms:
+    - name: Debian
+      versions:
+        - all
+
+  galaxy_tags:
+    - k3s
+
+dependencies: []

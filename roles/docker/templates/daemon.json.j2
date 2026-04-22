@@ -1,0 +1,31 @@
+{% set daemon_config = {
+  'data-root': docker_data_dir,
+  'debug': (docker_debug | bool)
+} %}
+{% if docker_log_gelf | bool %}
+{% set daemon_config = daemon_config | combine({
+  'log-driver': 'gelf',
+  'log-opts': {
+    'gelf-address': docker_log_gelf_url,
+    'cache-disabled': 'false',
+    'cache-max-file': (docker_log_cache_files | string),
+    'cache-max-size': docker_log_cache_size,
+    'cache-compress': (docker_log_cache_compress | bool) | ternary('true', 'false')
+  }
+}) %}
+{% else %}
+{% set daemon_config = daemon_config | combine({
+  'log-driver': 'local',
+  'log-opts': {
+    'max-file': (docker_log_local_files | string),
+    'max-size': docker_log_local_size,
+    'compress': (docker_log_local_compress | bool) | ternary('true', 'false')
+  }
+}) %}
+{% endif %}
+{% if docker_firewall_backend | length > 0 %}
+{% set daemon_config = daemon_config | combine({
+  'firewall-backend': docker_firewall_backend
+}) %}
+{% endif %}
+{{ daemon_config | to_nice_json }}

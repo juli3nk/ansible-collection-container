@@ -1,0 +1,65 @@
+---
+- name: Ensure outdated versions of Docker packages are absent
+  become: true
+  ansible.builtin.apt:
+    name:
+      - docker
+      - docker-engine
+      - docker.io
+      - containerd
+      - runc
+    state: absent
+
+- name: Add Docker APT repository (deb822)
+  become: true
+  ansible.builtin.deb822_repository:
+    name: "{{ docker_apt_repository_name }}"
+    types:
+      - deb
+    uris:
+      - "{{ docker_repo_url }}/{{ ansible_facts['distribution'] | lower }}"
+    suites:
+      - "{{ ansible_facts['distribution_release'] }}"
+    components:
+      - stable
+    architectures:
+      - "{{ docker_apt_architecture }}"
+    signed_by: "{{ docker_apt_gpg_key }}"
+    install_python_debian: true
+    state: present
+  register: docker_apt_repository_result
+
+- name: Refresh APT cache after repository changes
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+  when: docker_apt_repository_result.changed
+
+- name: Check if CGroup swap is configured in the boot command
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: "^GRUB_CMDLINE_LINUX_DEFAULT=\".*cgroup_enable=memory swapaccount=1.*\""
+    state: absent
+  check_mode: true
+  register: docker_grub_cmdline_check
+  changed_when: false
+
+- name: Ensure CGroup swap is enabled for Docker
+  become: true
+  ansible.builtin.lineinfile:
+    backrefs: true
+    path: /etc/default/grub
+    regexp: "^(GRUB_CMDLINE_LINUX_DEFAULT=\".*)\"$"
+    line: '\1 cgroup_enable=memory swapaccount=1"'
+  notify:
+    - Update GRUB
+    - Reboot Host
+  when:
+    - docker_grub_cmdline_check.found == 0
+
+- name: Install Docker packages
+  become: true
+  ansible.builtin.apt:
+    name: "{{ docker_packages }}"
+    state: present

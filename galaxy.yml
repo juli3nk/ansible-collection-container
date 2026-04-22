@@ -1,0 +1,38 @@
+#SPDX-License-Identifier: MIT
+---
+namespace: juli3nk
+name: container
+version: 1.0.0
+
+readme: README.md
+
+authors:
+- Julien K. (https://github.com/juli3nk)
+
+description: Ansible collection for container management
+
+license:
+- MIT
+license_file: 'LICENSE'
+
+tags:
+  - container
+  - debian
+  - docker
+  - k3s
+
+dependencies: {}
+
+repository: https://github.com/juli3nk/ansible-collection-container
+documentation: https://github.com/juli3nk/ansible-collection-container
+homepage: https://github.com/juli3nk/ansible-collection-container
+issues: https://github.com/juli3nk/ansible-collection-container/issues
+
+build_ignore:
+  - .config
+  - .github
+  - .gitignore
+  - changelogs
+  - roles/*/molecule
+  - tests
+  - '*.tar.gz'
