@@ -1,5 +1,6 @@
 ---
 - name: Download K3s install script
+  become: true
   ansible.builtin.get_url:
     url: 'https://get.k3s.io/'
     timeout: 120
@@ -9,6 +10,7 @@
     mode: '0755'
 
 - name: Install K3s
+  become: true
   ansible.builtin.command:
     cmd: /usr/local/bin/k3s-install.sh
   environment:
@@ -21,11 +23,13 @@
     - k3s_server_config_yaml is defined
   block:
     - name: Make config directory
+      become: true
       ansible.builtin.file:
         path: '/etc/rancher/k3s'
         mode: '0755'
         state: directory
     - name: Copy config values
+      become: true
       ansible.builtin.copy:
         content: "{{ k3s_server_config_yaml }}"
         dest: '/etc/rancher/k3s/config.yaml'
@@ -37,6 +41,7 @@
   block:
     - name: Copy K3s service file [Single]
       when: groups['k3s_server'] | length == 1
+      become: true
       ansible.builtin.template:
         src: "k3s-single.service.j2"
         dest: "{{ k3s_systemd_dir }}/k3s.service"
@@ -46,6 +51,7 @@
 
     - name: Copy K3s service file [HA]
       when: groups['k3s_server'] | length > 1
+      become: true
       ansible.builtin.template:
         src: "k3s-cluster-init.service.j2"
         dest: "{{ k3s_systemd_dir }}/k3s.service"
@@ -55,12 +61,14 @@
 
     - name: Add service environment variables
       when: k3s_extra_service_envs is defined
+      become: true
       ansible.builtin.lineinfile:
         path: "{{ k3s_systemd_dir }}/k3s.service.env"
         line: "{{ item }}"
       loop: "{{ k3s_extra_service_envs }}"
 
     - name: Enable and check K3s service
+      become: true
       ansible.builtin.systemd:
         name: k3s
         daemon_reload: true
@@ -73,6 +81,7 @@
         seconds: 10
 
     - name: Does mountpoint exists
+      become: true
       ansible.builtin.stat:
         path: "{{ k3s_kubeconfig }}"
       register: results
@@ -83,24 +92,25 @@
       become: false
       when: results.stat.exists
     - name: Copy kubectl config to local machine
+      become: true
       ansible.builtin.fetch:
         src: /etc/rancher/k3s/k3s.yaml
         dest: "{{ k3s_kubeconfig }}"
         flat: true
 
     - name: Setup kubeconfig k3s-ansible context
+      delegate_to: 127.0.0.1
+      become: false
       ansible.builtin.replace:
         path: "{{ k3s_kubeconfig }}"
         regexp: 'default'
         replace: "{{ k3s_context_name }}"
-      delegate_to: 127.0.0.1
-      become: false
 
     - name: Change server to API endpoint instead of localhost
+      delegate_to: 127.0.0.1
+      become: false
       ansible.builtin.shell: |
         kubectl config set-cluster {{ k3s_context_name }} \
           --server=https://{{ k3s_api_endpoint }}:{{ k3s_api_port }} \
           --kubeconfig {{ k3s_kubeconfig }}
-      delegate_to: 127.0.0.1
-      become: false
       changed_when: true
